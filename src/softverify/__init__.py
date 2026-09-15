@@ -1,0 +1,76 @@
+"""Small, illustrative SOFT-profile conformance reference.
+
+This package intentionally models protocol decisions, not cryptography.  It is
+useful for checking state-machine and economic test vectors and is not a
+consensus implementation.
+"""
+
+from .economics import (
+    challenger_ev,
+    challenger_expected_value,
+    deterrence_margin,
+    aggregate_exposure,
+    max_safe_exposure,
+    multi_channel_deterrence_margin,
+    p_effective,
+    p_effective_breakdown,
+)
+from .model import (
+    Challenge,
+    HARNESSED_BOUND_FIELDS,
+    SessionStatus,
+    SoftConfig,
+    SoftState,
+    TransitionResult,
+    Turn,
+    apply_event,
+    append_turn,
+    collateral_conserved,
+    challenge_session,
+    derive_turn_commitment,
+    escrow_conserved,
+    fund_challenger,
+    fund_miner_collateral,
+    make_commitment,
+    make_turn_commitment,
+    make_task_hash,
+    open_session,
+    respond_to_challenge,
+    run_trace,
+    settle_session,
+    timeout_session,
+)
+
+__all__ = [
+    "Challenge",
+    "HARNESSED_BOUND_FIELDS",
+    "SessionStatus",
+    "SoftConfig",
+    "SoftState",
+    "TransitionResult",
+    "Turn",
+    "apply_event",
+    "append_turn",
+    "collateral_conserved",
+    "challenge_session",
+    "derive_turn_commitment",
+    "challenger_ev",
+    "challenger_expected_value",
+    "deterrence_margin",
+    "aggregate_exposure",
+    "escrow_conserved",
+    "fund_challenger",
+    "fund_miner_collateral",
+    "make_commitment",
+    "make_turn_commitment",
+    "make_task_hash",
+    "max_safe_exposure",
+    "multi_channel_deterrence_margin",
+    "open_session",
+    "p_effective",
+    "p_effective_breakdown",
+    "respond_to_challenge",
+    "run_trace",
+    "settle_session",
+    "timeout_session",
+]
