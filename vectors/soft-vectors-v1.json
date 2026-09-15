@@ -1,0 +1,244 @@
+{
+  "$schema": "soft-vectors-v1.schema.json",
+  "profile": "flop-soft-v1",
+  "status": "illustrative-non-consensus",
+  "version": "1.0.0",
+  "source": {
+    "title": "FLOP Network Yellow Paper",
+    "version": "0.5.0",
+    "url": "https://github.com/flop-labs/yellowpaper/blob/main/yellowpaper.md",
+    "note": "The public repository labels v0.5.0 as an initial draft; this profile is a small proposal for the open E.33 SOFT-tier item."
+  },
+  "requirements": [
+    {"id": "R3.1", "citation": "§3.1", "text": "Settled sessions carry a required execution-integrity commitment."},
+    {"id": "R3.3", "citation": "§3.1", "text": "Independent re-execution and collectible aggregate exposure must satisfy the effective-challenge deterrence condition."},
+    {"id": "R3.5", "citation": "§3.1", "text": "Accepted evidence binds task, metered work, model, and output."},
+    {"id": "R3.6", "citation": "§3.1", "text": "Each task is creditable at most once."},
+    {"id": "R5.3d", "citation": "§5.3", "text": "Ephemeral evidence retention covers the challenge window."},
+    {"id": "R12.1b", "citation": "§12.1", "text": "SOFT turns use a session key and co-signed monotonic receipts."},
+    {"id": "R12.1a", "citation": "§12.1", "text": "Reserved escrow is paid optimistically; timeout and fraud are refund paths."},
+    {"id": "R12.1d", "citation": "§12.1", "text": "Failed or early close uses an explicit refund and tariff split."},
+    {"id": "R12.1f", "citation": "§12.1", "text": "Fraud disputes and response timeouts refund the agent and slash the miner."},
+    {"id": "R13.0b", "citation": "§13.0", "text": "Temporary DA loss may extend a window once without payout or slash."},
+    {"id": "R13.0c", "citation": "§13.0", "text": "Unrecoverable DA fails closed with escrow and challenger-bond refund."},
+    {"id": "E.33", "citation": "Appendix E", "text": "The non-TEE SOFT tier needs an end-to-end profile."},
+    {"id": "E.45", "citation": "Appendix E", "text": "The effective-challenge incentive model is conditional and illustrative."}
+  ],
+  "harnessed_bound_fields": ["session_id", "profile", "index", "task_hash", "model_hash", "payload_hash", "decode_policy_hash", "precision", "backend", "gpu_cell", "prompt_hash", "input_hash", "output_hash", "gn", "toploc_root", "activation_commitment", "da_reference", "nonce"],
+  "vectors": [
+    {
+      "id": "commitment-binding-accept",
+      "requirement_ids": ["R3.1", "R3.5", "R12.1b"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.5", "FLOP Yellow Paper v0.5.0 §12.1 R12.1b"],
+      "description": "A co-signed turn with the session commitment can settle.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-accept", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-accept", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5, "block": 1},
+        {"op": "turn", "session_id": "s-accept", "index": 0, "task_hash": "task-accept", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 12},
+        {"op": "settle", "session_id": "s-accept", "block": 2, "aggregate_gn": 12, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"}
+      ],
+      "expected": {"accepted": true, "code": "SETTLED", "status": "settled", "credited_gn": 12}
+    },
+    {
+      "id": "commitment-binding-reject",
+      "requirement_ids": ["R3.1", "R3.5"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.5"],
+      "description": "A turn with a different derived commitment is rejected before settlement.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-bind", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-bind", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-bind", "index": 0, "task_hash": "task-bind", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": "commit-other", "gn": 12}
+      ],
+      "expected": {"accepted": false, "code": "DERIVED_COMMITMENT_MISMATCH", "status": "open"}
+    },
+    {
+      "id": "duplicate-credit-reject",
+      "requirement_ids": ["R3.6"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.6"],
+      "description": "A second session using an already credited task is rejected.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-first", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-dupe", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-first", "index": 0, "task_hash": "task-dupe", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 1},
+        {"op": "settle", "session_id": "s-first", "block": 2, "aggregate_gn": 1, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"},
+        {"op": "open", "session_id": "s-second", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-dupe", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 0, "declared_exposure": 0, "p_effective_lower_bound": 0.5}
+      ],
+      "expected": {"accepted": false, "code": "DUPLICATE_CREDIT", "status": "absent"}
+    },
+    {
+      "id": "challenge-window-accept",
+      "requirement_ids": ["R5.3d", "R12.1f"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §12.1 R12.1f"],
+      "description": "A standing validator can challenge at the inclusive window boundary.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-window", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-window", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5, "block": 1},
+        {"op": "turn", "session_id": "s-window", "index": 0, "task_hash": "task-window", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 1},
+        {"op": "settle", "session_id": "s-window", "block": 2, "aggregate_gn": 1, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"},
+        {"op": "fund_challenger", "challenger": "validator:v1", "amount": 100},
+        {"op": "challenge", "session_id": "s-window", "challenger": "validator:v1", "block": 102, "bond": 100}
+      ],
+      "expected": {"accepted": true, "code": "CHALLENGE_OPENED", "status": "challenged"}
+    },
+    {
+      "id": "challenge-window-reject",
+      "requirement_ids": ["R12.1f"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §12.1 R12.1f"],
+      "description": "A challenge after the window is rejected.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-late", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-late", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-late", "index": 0, "task_hash": "task-late", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 1},
+        {"op": "settle", "session_id": "s-late", "block": 2, "aggregate_gn": 1, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"},
+        {"op": "fund_challenger", "challenger": "validator:v1", "amount": 100},
+        {"op": "challenge", "session_id": "s-late", "challenger": "validator:v1", "block": 103, "bond": 100}
+      ],
+      "expected": {"accepted": false, "code": "CHALLENGE_WINDOW_CLOSED", "status": "settled"}
+    },
+    {
+      "id": "bond-reject-before-lock",
+      "requirement_ids": ["R12.1f"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §12.1 R12.1f"],
+      "description": "An insufficient challenger bond is rejected without locking funds.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-bond", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-bond", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-bond", "index": 0, "task_hash": "task-bond", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 1},
+        {"op": "settle", "session_id": "s-bond", "block": 2, "aggregate_gn": 1, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"},
+        {"op": "fund_challenger", "challenger": "agent-a", "amount": 99},
+        {"op": "challenge", "session_id": "s-bond", "challenger": "agent-a", "block": 3, "bond": 99}
+      ],
+      "expected": {"accepted": false, "code": "BOND_REQUIRED", "status": "settled"}
+    },
+    {
+      "id": "da-unavailable-fail-closed-refund",
+      "requirement_ids": ["R13.0b", "R13.0c"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §13.0 R13.0b-R13.0c"],
+      "description": "The second unavailable-DA observation refunds and does not slash.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-da", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-da", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-da", "index": 0, "task_hash": "task-da", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 1},
+        {"op": "settle", "session_id": "s-da", "block": 2, "aggregate_gn": 1, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"},
+        {"op": "fund_challenger", "challenger": "agent-a", "amount": 100},
+        {"op": "challenge", "session_id": "s-da", "challenger": "agent-a", "block": 3, "bond": 100, "da_available": false},
+        {"op": "challenge", "session_id": "s-da", "challenger": "agent-a", "block": 4, "bond": 100, "da_available": false}
+      ],
+      "expected": {"accepted": true, "code": "DA_UNAVAILABLE_REFUND", "status": "refunded_da", "refund": 50, "miner_slash": 0}
+    },
+    {
+      "id": "mismatch-fraud",
+      "requirement_ids": ["R3.5", "R12.1f"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.5", "FLOP Yellow Paper v0.5.0 §12.1 R12.1f"],
+      "description": "A challenged claim that cannot match its commitment is fraud.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-fraud", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-fraud", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-fraud", "index": 0, "task_hash": "task-fraud", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 1},
+        {"op": "settle", "session_id": "s-fraud", "block": 2, "aggregate_gn": 1, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"},
+        {"op": "fund_challenger", "challenger": "agent-a", "amount": 100},
+        {"op": "challenge", "session_id": "s-fraud", "challenger": "agent-a", "block": 3, "bond": 100},
+        {"op": "respond", "session_id": "s-fraud", "block": 4, "matches_commitment": false}
+      ],
+      "expected": {"accepted": true, "code": "FRAUD_UPHELD", "status": "fraud_upheld", "refund": 50, "miner_slash": 120}
+    },
+    {
+      "id": "honest-dismissal",
+      "requirement_ids": ["R12.1f"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §12.1 R12.1f"],
+      "description": "A matching response dismisses the challenge and forfeits its anti-griefing bond.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-dismiss", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-dismiss", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-dismiss", "index": 0, "task_hash": "task-dismiss", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 1},
+        {"op": "settle", "session_id": "s-dismiss", "block": 2, "aggregate_gn": 1, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"},
+        {"op": "fund_challenger", "challenger": "agent-a", "amount": 100},
+        {"op": "challenge", "session_id": "s-dismiss", "challenger": "agent-a", "block": 3, "bond": 100},
+        {"op": "respond", "session_id": "s-dismiss", "block": 4, "matches_commitment": true},
+        {"op": "timeout", "session_id": "s-dismiss", "block": 103}
+      ],
+      "expected": {"accepted": true, "code": "FINALIZED", "status": "finalized"}
+    },
+    {
+      "id": "response-timeout-fraud",
+      "requirement_ids": ["R12.1f"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §12.1 R12.1f"],
+      "description": "No response by the response deadline defaults to fraud.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-timeout", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-timeout", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-timeout", "index": 0, "task_hash": "task-timeout", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1", "output_hash": "out-1", "commitment": {"derive": "turn"}, "gn": 1},
+        {"op": "settle", "session_id": "s-timeout", "block": 2, "aggregate_gn": 1, "toploc_root": "toploc-1", "activation_commitment": "commit-1", "da_reference": "da-1"},
+        {"op": "fund_challenger", "challenger": "agent-a", "amount": 100},
+        {"op": "challenge", "session_id": "s-timeout", "challenger": "agent-a", "block": 3, "bond": 100},
+        {"op": "timeout", "session_id": "s-timeout", "block": 24}
+      ],
+      "expected": {"accepted": true, "code": "FRAUD_UPHELD", "status": "fraud_upheld", "refund": 50}
+    },
+    {
+      "id": "non-delivery-timeout-refund",
+      "requirement_ids": ["R12.1a", "R12.1d"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §12.1 R12.1d"],
+      "description": "An open session that never delivers turns refunds after its bounded timeout.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 120},
+        {"op": "open", "session_id": "s-nondelivery", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-nondelivery", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 50, "reserved_collateral": 120, "declared_exposure": 50, "p_effective_lower_bound": 0.5, "block": 1},
+        {"op": "timeout", "session_id": "s-nondelivery", "block": 202}
+      ],
+      "expected": {"accepted": true, "code": "NON_DELIVERY_REFUND", "status": "refunded_timeout", "refund": 50}
+    },
+    {
+      "id": "unsafe-concurrent-opening-reject",
+      "requirement_ids": ["R3.3", "E.45"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.3", "FLOP Yellow Paper v0.5.0 Appendix E E.45"],
+      "description": "Exactly 550 backed collateral is unsafe because p=.2 times B_col_lower is not strictly greater than 110 exposure.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 550},
+        {"op": "open", "session_id": "s-risk-1", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-risk-1", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 10, "reserved_collateral": 275, "declared_exposure": 50, "p_effective_lower_bound": 0.2},
+        {"op": "open", "session_id": "s-risk-2", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-risk-2", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-2", "escrow": 10, "reserved_collateral": 275, "declared_exposure": 60, "p_effective_lower_bound": 0.2}
+      ],
+      "expected": {"accepted": false, "code": "UNSAFE_AGGREGATE_EXPOSURE", "status": "absent"}
+    },
+    {
+      "id": "safe-concurrent-opening-accept",
+      "requirement_ids": ["R3.3", "E.45"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.3", "FLOP Yellow Paper v0.5.0 Appendix E E.45"],
+      "description": "One pre-funded collateral pool safely admits two sessions under a strict aggregate budget.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 600},
+        {"op": "open", "session_id": "s-safe-1", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-safe-1", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 10, "reserved_collateral": 300, "declared_exposure": 50, "p_effective_lower_bound": 0.2},
+        {"op": "open", "session_id": "s-safe-2", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-safe-2", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-2", "escrow": 10, "reserved_collateral": 300, "declared_exposure": 60, "p_effective_lower_bound": 0.2}
+      ],
+      "expected": {"accepted": true, "code": "OPENED", "status": "open", "safety_margin": 10, "b_col_lower": 600}
+    },
+    {
+      "id": "missing-open-toploc-reject",
+      "requirement_ids": ["R3.1", "R12.1b"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.1", "FLOP Yellow Paper v0.5.0 §12.1 R12.1b"],
+      "description": "An open without a nonempty TOPLOC root is fail-closed.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 50},
+        {"op": "open", "session_id": "s-no-toploc", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-no-toploc", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "", "da_reference": "da-1", "commitment": "commit-1", "escrow": 10, "reserved_collateral": 10, "declared_exposure": 10, "p_effective_lower_bound": 0.5}
+      ],
+      "expected": {"accepted": false, "code": "MISSING_TOPLOC_ROOT", "status": "absent"}
+    },
+    {
+      "id": "missing-turn-da-reference-reject",
+      "requirement_ids": ["R3.1", "R12.1b"],
+      "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.1", "FLOP Yellow Paper v0.5.0 §12.1 R12.1b"],
+      "description": "A turn without an explicit DA reference is rejected.",
+      "trace": [
+        {"op": "fund_miner", "miner": "miner-a", "amount": 50},
+        {"op": "open", "session_id": "s-no-turn-da", "agent": "agent-a", "miner": "miner-a", "task_hash": "task-no-turn-da", "model_hash": "model-1", "payload_hash": "payload-1", "decode_policy_hash": "decode-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "da_reference": "da-1", "commitment": "commit-1", "escrow": 10, "reserved_collateral": 50, "declared_exposure": 10, "p_effective_lower_bound": 0.5},
+        {"op": "turn", "session_id": "s-no-turn-da", "index": 0, "task_hash": "task-no-turn-da", "model_hash": "model-1", "precision": "fp16", "backend": "backend-1", "gpu_cell": "gpu-cell-1", "prompt_hash": "prompt-1", "input_hash": "input-1", "toploc_root": "toploc-1", "activation_commitment": "commit-1", "output_hash": "out-1", "commitment": "invalid", "gn": 1}
+      ],
+      "expected": {"accepted": false, "code": "MISSING_DA_REFERENCE", "status": "open"}
+    }
+  ],
+  "economics": {
+    "requirement_ids": ["E.45", "R3.3"],
+    "source_citations": ["FLOP Yellow Paper v0.5.0 §3.1 R3.3", "FLOP Yellow Paper v0.5.0 Appendix E E.45"],
+    "factors": {"p_selected": 0.5, "p_data": 0.9, "p_challenge": 0.8, "p_included": 0.95, "p_upheld": 0.75, "p_collectible": 0.8},
+    "expected": {"p_effective": 0.2052, "collectible_penalty": 1000, "max_safe_exposure": 205.2, "total_profitable_exposure": 150, "deterrence_margin": 55.2, "challenger_ev": 50}
+  }
+}
