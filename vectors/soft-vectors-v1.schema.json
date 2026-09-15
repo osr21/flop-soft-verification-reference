@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flop.network/spec/soft-vectors-v1.schema.json",
+  "title": "Illustrative FLOP SOFT profile vectors",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "profile", "status", "version", "source", "requirements", "harnessed_bound_fields", "vectors", "economics"],
+  "properties": {
+    "$schema": {"const": "soft-vectors-v1.schema.json"},
+    "profile": {"const": "flop-soft-v1"},
+    "status": {"const": "illustrative-non-consensus"},
+    "version": {"type": "string"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "version", "url", "note"],
+      "properties": {
+        "title": {"type": "string"},
+        "version": {"const": "0.5.0"},
+        "url": {"type": "string", "format": "uri"},
+        "note": {"type": "string"}
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "citation", "text"],
+        "properties": {"id": {"type": "string"}, "citation": {"type": "string"}, "text": {"type": "string"}}
+      }
+    },
+    "harnessed_bound_fields": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["session_id", "profile", "index", "task_hash", "model_hash", "payload_hash", "decode_policy_hash", "precision", "backend", "gpu_cell", "prompt_hash", "input_hash", "output_hash", "gn", "toploc_root", "activation_commitment", "da_reference", "nonce"]
+      }
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "requirement_ids", "source_citations", "description", "trace", "expected"],
+        "properties": {
+          "id": {"type": "string"},
+          "requirement_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "source_citations": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "description": {"type": "string"},
+          "trace": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/event"}},
+        "expected": {"type": "object", "required": ["accepted", "code", "status"], "properties": {"accepted": {"type": "boolean"}, "code": {"type": "string"}, "status": {"type": "string"}, "credited_gn": {"type": "integer"}, "refund": {"type": "integer"}, "miner_slash": {"type": "integer"}, "bond_forfeited": {"type": "integer"}, "declared_exposure": {"type": "number"}, "p_effective_lower_bound": {"type": "number"}, "safety_margin": {"type": "number"}, "b_col_lower": {"type": "number"}}}
+        }
+      }
+    },
+    "economics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirement_ids", "source_citations", "factors", "expected"],
+      "properties": {
+        "requirement_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "source_citations": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "factors": {"type": "object", "required": ["p_selected", "p_data", "p_challenge", "p_included", "p_upheld", "p_collectible"]},
+        "expected": {"type": "object", "required": ["p_effective", "max_safe_exposure", "deterrence_margin", "challenger_ev"], "properties": {"p_effective": {"type": "number"}, "collectible_penalty": {"type": "number"}, "max_safe_exposure": {"type": "number"}, "total_profitable_exposure": {"type": "number"}, "deterrence_margin": {"type": "number"}, "challenger_ev": {"type": "number"}}}
+      }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": true,
+        "properties": {
+          "op": {"enum": ["fund_miner", "fund_challenger", "open", "turn", "settle", "challenge", "respond", "timeout"]},
+          "precision": {"type": "string", "minLength": 1},
+          "backend": {"type": "string", "minLength": 1},
+          "gpu_cell": {"type": "string", "minLength": 1},
+          "prompt_hash": {"type": "string", "minLength": 1},
+          "input_hash": {"type": "string", "minLength": 1},
+          "toploc_root": {"type": "string", "minLength": 1},
+          "activation_commitment": {"type": "string", "minLength": 1},
+          "da_reference": {"type": "string", "minLength": 1},
+          "declared_exposure": {"type": "number", "minimum": 0},
+          "p_effective_lower_bound": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+          "safety_margin": {"type": "number", "minimum": 0},
+        "commitment": {
+          "oneOf": [
+            {"type": "string"},
+            {"type": "object", "required": ["derive"], "properties": {"derive": {"const": "turn"}}}
+          ]
+        }
+      }
+    }
+  }
+}
