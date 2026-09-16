@@ -40,6 +40,13 @@ from .model import (
     settle_session,
     timeout_session,
 )
+from .fault_injection import (
+    GATES,
+    FaultScenario,
+    FaultSimulationResult,
+    load_scenarios,
+    simulate_faults,
+)
 
 __all__ = [
     "Challenge",
@@ -73,4 +80,9 @@ __all__ = [
     "run_trace",
     "settle_session",
     "timeout_session",
+    "GATES",
+    "FaultScenario",
+    "FaultSimulationResult",
+    "load_scenarios",
+    "simulate_faults",
 ]
