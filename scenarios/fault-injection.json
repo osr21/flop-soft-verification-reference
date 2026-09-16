@@ -1,0 +1,36 @@
+[
+  {
+    "name": "independent-baseline",
+    "trials": 20000,
+    "seed": 1401,
+    "failure_mode": "independent",
+    "common_mode_failure_rate": 0.0,
+    "unconditional_marginal_pass_probabilities": {
+      "selected": 0.5,
+      "da_available": 0.9,
+      "challenge_submitted": 0.8,
+      "timely_finalized_inclusion": 0.95,
+      "upheld_verdict": 0.75,
+      "collateral_collection": 0.8
+    },
+    "total_profitable_exposure": 100.0,
+    "collectible_penalty": 1000.0
+  },
+  {
+    "name": "common-mode-outage",
+    "trials": 20000,
+    "seed": 1401,
+    "failure_mode": "common_mode",
+    "common_mode_failure_rate": 0.04,
+    "unconditional_marginal_pass_probabilities": {
+      "selected": 0.5,
+      "da_available": 0.9,
+      "challenge_submitted": 0.8,
+      "timely_finalized_inclusion": 0.95,
+      "upheld_verdict": 0.75,
+      "collateral_collection": 0.8
+    },
+    "total_profitable_exposure": 100.0,
+    "collectible_penalty": 1000.0
+  }
+]
