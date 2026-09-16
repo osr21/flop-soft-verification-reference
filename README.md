@@ -38,6 +38,9 @@ inference soundness.
   negative transition cases plus one transparent economic scenario.
 - [Vector schema](vectors/soft-vectors-v1.schema.json) — machine-readable
   structure for the corpus.
+- [Synthetic fault-injection results](docs/fault-injection-results.md) —
+  deterministic independent and common-mode challenge-path simulations; not
+  real network measurements.
 
 ## Reproduce
 
@@ -51,12 +54,23 @@ PYTHONPATH=src pytest -q
 Expected result:
 
 ```text
-46 passed
+52 passed
 ```
 
 The tests load every JSON vector, replay its trace through the reference model,
 check the expected terminal result and ledger effects, and validate the
 economic calculations.
+
+To run the synthetic fault-injection fixtures:
+
+```bash
+PYTHONPATH=src uv run python - <<'PY'
+from softverify.fault_injection import load_scenarios, simulate_faults
+
+for scenario in load_scenarios("scenarios/fault-injection.json"):
+    print(simulate_faults(scenario).as_dict())
+PY
+```
 
 ## What the package tests
 
@@ -70,6 +84,8 @@ economic calculations.
 - non-delivery refunds;
 - conditional effective-challenge probability;
 - deterrence margin, safe exposure, and challenger expected value.
+- seeded synthetic independent and common-mode fault injection across all six
+  challenge-path gates (simulation only, not telemetry).
 
 The vector harness uses shortened block windows so boundary cases stay readable.
 The profile document's values are proposals expressed at production scale; the
