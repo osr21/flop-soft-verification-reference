@@ -39,8 +39,10 @@ inference soundness.
 - [Vector schema](vectors/soft-vectors-v1.schema.json) — machine-readable
   structure for the corpus.
 - [Synthetic fault-injection results](docs/fault-injection-results.md) —
-  deterministic independent and common-mode challenge-path simulations; not
-  real network measurements.
+  deterministic withholding, censorship, checker-disagreement, unbonding, and
+  common-mode challenge-path simulations with lower confidence bounds; not real
+  network measurements. Results support
+  [yellowpaper issue #62](https://github.com/flop-labs/yellowpaper/issues/62).
 
 ## Reproduce
 
@@ -51,12 +53,6 @@ python -m pip install pytest
 PYTHONPATH=src pytest -q
 ```
 
-Expected result:
-
-```text
-52 passed
-```
-
 The tests load every JSON vector, replay its trace through the reference model,
 check the expected terminal result and ledger effects, and validate the
 economic calculations.
@@ -64,12 +60,7 @@ economic calculations.
 To run the synthetic fault-injection fixtures:
 
 ```bash
-PYTHONPATH=src uv run python - <<'PY'
-from softverify.fault_injection import load_scenarios, simulate_faults
-
-for scenario in load_scenarios("scenarios/fault-injection.json"):
-    print(simulate_faults(scenario).as_dict())
-PY
+uv run softverify-faults scenarios/fault-injection.json --format markdown
 ```
 
 ## What the package tests
@@ -84,8 +75,9 @@ PY
 - non-delivery refunds;
 - conditional effective-challenge probability;
 - deterrence margin, safe exposure, and challenger expected value.
-- seeded synthetic independent and common-mode fault injection across all six
-  challenge-path gates (simulation only, not telemetry).
+- seeded attack-class fault injection across all six challenge-path gates;
+- simultaneous one-sided conditional-factor bounds and a direct path bound;
+- lower-bound economic evaluation without assuming gate independence.
 
 The vector harness uses shortened block windows so boundary cases stay readable.
 The profile document's values are proposals expressed at production scale; the

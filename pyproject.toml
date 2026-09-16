@@ -9,6 +9,9 @@ description = "Small illustrative non-consensus SOFT profile state machine and v
 requires-python = ">=3.11"
 dependencies = []
 
+[project.scripts]
+softverify-faults = "softverify.fault_injection:main"
+
 [project.optional-dependencies]
 test = ["pytest>=7"]
 

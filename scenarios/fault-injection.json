@@ -1,36 +1,98 @@
 [
   {
-    "name": "independent-baseline",
-    "trials": 20000,
-    "seed": 1401,
-    "failure_mode": "independent",
-    "common_mode_failure_rate": 0.0,
-    "unconditional_marginal_pass_probabilities": {
-      "selected": 0.5,
-      "da_available": 0.9,
-      "challenge_submitted": 0.8,
-      "timely_finalized_inclusion": 0.95,
-      "upheld_verdict": 0.75,
-      "collateral_collection": 0.8
+    "name": "withholding-repair-lane",
+    "attack_class": "withholding",
+    "description": "Miner withholds primary transcript data; independent repair remains intermittently available.",
+    "trials": 50000,
+    "seed": 6201,
+    "conditional_pass_probabilities": {
+      "selected": 0.25,
+      "da_available": 0.55,
+      "challenge_submitted": 0.92,
+      "timely_finalized_inclusion": 0.97,
+      "upheld_verdict": 0.96,
+      "collateral_collection": 0.98
     },
-    "total_profitable_exposure": 100.0,
-    "collectible_penalty": 1000.0
+    "total_profitable_exposure": 40.0,
+    "collectible_penalty": 1000.0,
+    "confidence": 0.95
   },
   {
-    "name": "common-mode-outage",
-    "trials": 20000,
-    "seed": 1401,
-    "failure_mode": "common_mode",
-    "common_mode_failure_rate": 0.04,
-    "unconditional_marginal_pass_probabilities": {
-      "selected": 0.5,
-      "da_available": 0.9,
-      "challenge_submitted": 0.8,
-      "timely_finalized_inclusion": 0.95,
-      "upheld_verdict": 0.75,
-      "collateral_collection": 0.8
+    "name": "validator-censorship",
+    "attack_class": "censorship",
+    "description": "A validator coalition delays challenge inclusion near the deadline.",
+    "trials": 50000,
+    "seed": 6202,
+    "conditional_pass_probabilities": {
+      "selected": 0.25,
+      "da_available": 0.98,
+      "challenge_submitted": 0.94,
+      "timely_finalized_inclusion": 0.38,
+      "upheld_verdict": 0.96,
+      "collateral_collection": 0.98
     },
-    "total_profitable_exposure": 100.0,
-    "collectible_penalty": 1000.0
+    "total_profitable_exposure": 40.0,
+    "collectible_penalty": 1000.0,
+    "confidence": 0.95
+  },
+  {
+    "name": "checker-disagreement",
+    "attack_class": "checker_disagreement",
+    "description": "Heterogeneous checker execution causes challenged fraud to miss the required agreement.",
+    "trials": 50000,
+    "seed": 6203,
+    "conditional_pass_probabilities": {
+      "selected": 0.25,
+      "da_available": 0.98,
+      "challenge_submitted": 0.94,
+      "timely_finalized_inclusion": 0.97,
+      "upheld_verdict": 0.44,
+      "collateral_collection": 0.98
+    },
+    "total_profitable_exposure": 40.0,
+    "collectible_penalty": 1000.0,
+    "confidence": 0.95
+  },
+  {
+    "name": "unbond-before-finality",
+    "attack_class": "attempted_unbonding",
+    "description": "Miner requests unbonding during adjudication; only collateral still locked through finality is counted.",
+    "trials": 50000,
+    "seed": 6204,
+    "conditional_pass_probabilities": {
+      "selected": 0.25,
+      "da_available": 0.98,
+      "challenge_submitted": 0.94,
+      "timely_finalized_inclusion": 0.97,
+      "upheld_verdict": 0.96,
+      "collateral_collection": 0.41
+    },
+    "total_profitable_exposure": 40.0,
+    "collectible_penalty": 1000.0,
+    "confidence": 0.95
+  },
+  {
+    "name": "correlated-validator-outage",
+    "attack_class": "correlated_failure",
+    "description": "One validator-set outage jointly prevents selection, challenge inclusion, and collection.",
+    "trials": 50000,
+    "seed": 6205,
+    "conditional_pass_probabilities": {
+      "selected": 0.25,
+      "da_available": 0.98,
+      "challenge_submitted": 0.94,
+      "timely_finalized_inclusion": 0.97,
+      "upheld_verdict": 0.96,
+      "collateral_collection": 0.98
+    },
+    "correlated_failure_rate": 0.2,
+    "correlated_failure_gates": [
+      "selected",
+      "timely_finalized_inclusion",
+      "collateral_collection"
+    ],
+    "total_profitable_exposure": 40.0,
+    "collectible_penalty": 1000.0,
+    "confidence": 0.95
   }
 ]

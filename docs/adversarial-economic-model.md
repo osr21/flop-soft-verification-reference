@@ -48,9 +48,12 @@ silently turns 2.5% into `p_effective`, turns 100 FLOP into
 The public issues motivating this note are [#49][i49] (E.45 lacks a
 miner-wide reservation and collectible-penalty formula) and [#50][i50]
 (SOFT demand-floor eligibility lacks the hardware-bound Sybil cost of HARD).
+The seeded failure evidence requested by [#62][i62] is reported in
+[fault-injection-results.md](fault-injection-results.md).
 
 [i49]: https://github.com/flop-labs/yellowpaper/issues/49
 [i50]: https://github.com/flop-labs/yellowpaper/issues/50
+[i62]: https://github.com/flop-labs/yellowpaper/issues/62
 
 ## 1. Players, actions, and payoffs
 
@@ -158,6 +161,13 @@ attack class and traffic regime. If a factor is controlled by a rational
 party and has no independent incentive, its adversarial lower bound is zero.
 Thus a product with an impressive nominal 2.5% is not a deterrence result if
 challenge or collection can be suppressed.
+
+The reference fault-injection harness operationalizes this input per attack
+class. It records sequential conditional denominators, calculates simultaneous
+one-sided factor bounds, and also bounds the complete attack path directly. The
+economic helpers receive the smaller result. Consequently, a shared outage or
+coalition is retained in each trial's joint outcome and is never replaced by an
+independence product of marginal rates.
 
 ## 3. Collectible penalty and miner-wide reservation
 

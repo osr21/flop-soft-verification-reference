@@ -8,6 +8,7 @@ from softverify.fault_injection import (
     GATES,
     FaultScenario,
     load_scenarios,
+    one_sided_wilson_lower_bound,
     simulate_faults,
 )
 
@@ -15,96 +16,89 @@ from softverify.fault_injection import (
 def _scenario(**overrides: object) -> FaultScenario:
     values: dict[str, object] = {
         "name": "test",
-        "trials": 2000,
+        "attack_class": "test",
+        "description": "test fixture",
+        "trials": 5000,
         "seed": 7,
-        "unconditional_marginal_pass_probabilities": {gate: 0.8 for gate in GATES},
-        "total_profitable_exposure": 500.0,
+        "conditional_pass_probabilities": {gate: 0.8 for gate in GATES},
+        "total_profitable_exposure": 100.0,
         "collectible_penalty": 1000.0,
     }
     values.update(overrides)
     return FaultScenario(**values)
 
 
-def test_zero_gate_failure_makes_path_probability_zero() -> None:
+def test_wilson_lower_bound_handles_empty_and_perfect_samples() -> None:
+    assert one_sided_wilson_lower_bound(0, 0) == 0
+    assert one_sided_wilson_lower_bound(0, 10) == 0
+    assert 0 < one_sided_wilson_lower_bound(10, 10) < 1
+
+
+def test_zero_conditional_gate_fails_closed() -> None:
     probabilities = {gate: 0.8 for gate in GATES}
     probabilities["challenge_submitted"] = 0.0
     result = simulate_faults(
-        _scenario(unconditional_marginal_pass_probabilities=probabilities)
+        _scenario(conditional_pass_probabilities=probabilities)
     )
 
     assert result.path_successes == 0
-    assert result.observed_complete_path_probability == 0.0
-    assert result.sequential_conditional_rates["timely_finalized_inclusion"] is None
-    assert result.max_safe_exposure == 0.0
+    assert result.gate_estimates["timely_finalized_inclusion"].observed_rate is None
+    assert result.adversarial_p_effective_lower_bound == 0
+    assert result.max_safe_exposure_lower_bound == 0
 
 
-def test_common_mode_failures_change_selection_path_despite_same_marginals() -> None:
-    independent = simulate_faults(_scenario(name="independent"))
-    correlated = simulate_faults(
-        _scenario(
-            name="correlated",
-            failure_mode="common_mode",
-            common_mode_failure_rate=0.1,
-        )
-    )
-
-    assert correlated.observed_gate_rates["selected"] == pytest.approx(
-        independent.observed_gate_rates["selected"], abs=0.04
-    )
-    assert (
-        correlated.observed_complete_path_probability
-        > independent.observed_complete_path_probability
-    )
-
-
-@pytest.mark.parametrize("failure_mode,common_mode_failure_rate", [
-    ("independent", 0.0),
-    ("common_mode", 0.1),
-])
-def test_sequential_conditional_product_equals_observed_path(
-    failure_mode: str, common_mode_failure_rate: float
-) -> None:
-    result = simulate_faults(
-        _scenario(
-            failure_mode=failure_mode,
-            common_mode_failure_rate=common_mode_failure_rate,
-        )
-    )
-
-    assert result.sequential_conditional_product == pytest.approx(
+def test_conditional_product_reconstructs_observed_complete_path() -> None:
+    result = simulate_faults(_scenario())
+    observed_product = 1.0
+    for estimate in result.gate_estimates.values():
+        assert estimate.observed_rate is not None
+        observed_product *= estimate.observed_rate
+    assert observed_product == pytest.approx(
         result.observed_complete_path_probability
     )
 
 
-def test_backed_collateral_boundary_uses_observed_effective_probability() -> None:
-    scenario = _scenario(
-        trials=1000,
-        seed=2,
-        unconditional_marginal_pass_probabilities={gate: 1.0 for gate in GATES},
-        total_profitable_exposure=1000.0,
-        collectible_penalty=1000.0,
+def test_correlated_outage_is_measured_at_path_level() -> None:
+    baseline = simulate_faults(
+        _scenario(conditional_pass_probabilities={gate: 1.0 for gate in GATES})
     )
-    result = simulate_faults(scenario)
-
-    assert result.observed_complete_path_probability == 1.0
-    assert result.max_safe_exposure == 1000.0
-    assert result.deterrence_margin == 0.0
-
-    backed = simulate_faults(
+    outage = simulate_faults(
         _scenario(
-            unconditional_marginal_pass_probabilities={gate: 1.0 for gate in GATES},
-            total_profitable_exposure=999.0,
-            collectible_penalty=1000.0,
+            conditional_pass_probabilities={gate: 1.0 for gate in GATES},
+            correlated_failure_rate=0.25,
+            correlated_failure_gates=GATES,
         )
     )
-    assert backed.deterrence_margin > 0
+    assert (
+        outage.observed_complete_path_probability
+        < baseline.observed_complete_path_probability
+    )
+    assert outage.adversarial_p_effective_lower_bound <= outage.direct_path_lower_bound
 
 
-def test_scenario_fixture_loads() -> None:
+def test_economics_use_lower_bound_not_point_estimate() -> None:
+    result = simulate_faults(
+        _scenario(conditional_pass_probabilities={gate: 1.0 for gate in GATES})
+    )
+    assert result.adversarial_p_effective_lower_bound < 1
+    assert result.max_safe_exposure_lower_bound < 1000
+    assert result.deterrence_margin_lower_bound == pytest.approx(
+        result.max_safe_exposure_lower_bound - 100
+    )
+
+
+def test_attack_fixture_covers_required_failure_classes() -> None:
     scenarios = load_scenarios(
         str(Path(__file__).parents[1] / "scenarios" / "fault-injection.json")
     )
-    assert [scenario.name for scenario in scenarios] == [
-        "independent-baseline",
-        "common-mode-outage",
-    ]
+    assert {scenario.attack_class for scenario in scenarios} == {
+        "withholding",
+        "censorship",
+        "checker_disagreement",
+        "attempted_unbonding",
+        "correlated_failure",
+    }
+    for scenario in scenarios:
+        first = simulate_faults(scenario).as_dict()
+        second = simulate_faults(scenario).as_dict()
+        assert first == second
